@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitácora de Relevos | Onda Viva</title>
+  <link rel="stylesheet" href="competencia.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="live-dot"></span>
+      <div>
+        <h1>Onda Viva <span class="badge-live">AL AIRE</span></h1>
+        <p class="subtitle">Sistema Oficial de Bitácora y Control de Relevos</p>
+      </div>
+    </div>
+    <div class="header-actions no-print">
+      <button type="button" id="btnExportarCSV" class="btn-outline">📊 Excel (CSV)</button>
+      <button type="button" id="btnBackup" class="btn-outline">💾 Respaldo</button>
+      <label class="btn-outline file-btn">📂 Restaurar <input type="file" id="inputRestore" accept=".json" hidden></label>
+      <button type="button" onclick="window.print()" class="btn-outline">🖨️ Reporte PDF</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ALERTAS DE HOY Y MAÑANA (NIVEL 2) -->
+    <section id="bannerAlertas" class="alert-banner hidden"></section>
+
+    <!-- RESUMEN MENSUAL Y KPIS (NIVEL 2) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>📈 Resumen de Operación</h2>
+        <div class="month-filter no-print">
+          <label for="filtroMes">Mes de consulta:</label>
+          <input type="month" id="filtroMes">
+          <button type="button" id="btnVerTodosMeses" class="btn-link">Ver todo</button>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">Total Relevos</span>
+          <strong id="kpiTotal">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Turnos Cubiertos</span>
+          <strong id="kpiCubiertos" class="txt-ok">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Pendientes / Sin cubrir</span>
+          <strong id="kpiPendientes" class="txt-warn">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Horas Cubiertas al Aire</span>
+          <strong id="kpiHoras" class="txt-accent">0 h</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORMULARIO DE REGISTRO (LOS 8 DATOS DE LA FICHA) -->
+    <section class="card no-print">
+      <div class="card-header">
+        <h2>📝 Registrar Ficha de Relevo</h2>
+        <span class="hint">Máx. 3 relevos por semana · Detección automática de choques</span>
+      </div>
+
+      <form id="relevoForm">
+        <div class="grid-4">
+          <div class="input-group">
+            <label for="fecha">1. Fecha *</label>
+            <input type="date" id="fecha" required>
+          </div>
+          <div class="input-group">
+            <label for="programa">2. Programa *</label>
+            <select id="programa" required></select>
+          </div>
+          <div class="input-group">
+            <label for="horaIni">3. Hora inicio *</label>
+            <input type="time" id="horaIni" value="07:00" required>
+          </div>
+          <div class="input-group">
+            <label for="horaFin">Hora fin *</label>
+            <input type="time" id="horaFin" value="08:00" required>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="input-group">
+            <label for="estado">4. Estado *</label>
+            <select id="estado" required>
+              <option value="Pendiente">🟡 Pendiente · aún sin relevo</option>
+              <option value="Cubierto">🟢 Cubierto</option>
+              <option value="Sin cubrir">🔴 Sin cubrir · no salió al aire</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="titular">5. Titular · Quien falta *</label>
+            <input type="text" id="titular" list="listaEquipo" placeholder="Ej. Laura Gómez" required>
+          </div>
+          <div class="input-group">
+            <label for="relevo">
+              6. Relevo · Quien cubre
+              <button type="button" id="btnSugerir" class="btn-link">✨ Sugerir</button>
+            </label>
+            <input type="text" id="relevo" list="listaEquipo" placeholder="Ej. Andrés Pinto">
+          </div>
+          <div class="input-group">
+            <label for="motivo">7. Motivo *</label>
+            <select id="motivo" required>
+              <option value="Enfermedad">Enfermedad</option>
+              <option value="Cita médica">Cita médica</option>
+              <option value="Permiso">Permiso</option>
+              <option value="Calamidad">Calamidad</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <datalist id="listaEquipo"></datalist>
+
+        <div class="input-group">
+          <label for="obs">8. Observaciones</label>
+          <input type="text" id="obs" placeholder="Ej. Avisó a las 6:30 a. m. Guion enviado al correo.">
+        </div>
+
+        <p id="errorMsg" class="error-box"></p>
+        <button type="submit" class="btn-primary">Guardar Ficha de Relevo</button>
+      </form>
+
+      <!-- ADMINISTRAR PRESENTADORES Y PROGRAMAS (NIVEL 2) -->
+      <details class="admin-panel">
+        <summary>⚙️ Administrar Presentadores y Programas de Onda Viva</summary>
+        <div class="grid-2 admin-body">
+          <div>
+            <label>Agregar nuevo presentador al equipo:</label>
+            <div class="inline-add">
+              <input type="text" id="nuevoLocutor" placeholder="Nombre completo...">
+              <button type="button" id="btnAddLocutor" class="btn-sm btn-ok">Añadir</button>
+            </div>
+            <div id="tagsLocutores" class="tags-wrap"></div>
+          </div>
+          <div>
+            <label>Agregar nuevo programa:</label>
+            <div class="inline-add">
+              <input type="text" id="nuevoPrograma" placeholder="Nombre del programa...">
+              <button type="button" id="btnAddPrograma" class="btn-sm btn-ok">Añadir</button>
+            </div>
+            <div id="tagsProgramas" class="tags-wrap"></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- GRÁFICAS Y SALDO DE EQUIDAD (NIVEL 1 + NIVEL 3) -->
+    <section class="grid-2-equal">
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 Gráfica de Horas Cubiertas</h2>
+          <span class="hint">Comparativa del equipo</span>
+        </div>
+        <div id="graficaHoras" class="chart-container"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>⚖️ Contador y Equidad</h2>
+          <span class="hint">Cubiertos vs. Ausencias</span>
+        </div>
+        <div id="contadorLista" class="stats-grid"></div>
+      </div>
+    </section>
+
+    <!-- BITÁCORA Y FILTROS (NIVEL 1 + NIVEL 2) -->
+    <section class="card">
+      <div class="list-header">
+        <h2>🗂️ Bitácora de Relevos</h2>
+        <div class="filters no-print">
+          <input type="text" id="buscador" placeholder="🔍 Buscar persona o programa...">
+          <select id="filtroPrograma"><option value="Todos">Todos los programas</option></select>
+          <select id="filtroEstado">
+            <option value="Todos">Todos los estados</option>
+            <option value="Pendiente">🟡 Pendiente</option>
+            <option value="Cubierto">🟢 Cubierto</option>
+            <option value="Sin cubrir">🔴 Sin cubrir</option>
+          </select>
+          <button type="button" id="btnEjemplo" class="btn-sm btn-sec">Cargar ejemplo</button>
+          <button type="button" id="btnLimpiar" class="btn-sm btn-del">Empezar de cero</button>
+        </div>
+      </div>
+      <div id="listaRelevos"></div>
+    </section>
+  </main>
+
+  <script src="competencia.js"></script>
+</body>
+</html>
